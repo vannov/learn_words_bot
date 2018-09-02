@@ -41,7 +41,7 @@ def translate(bot, update):
     # TODO: get from user
     p['src'] = "en"
     p['dest'] = "ru"
-    translate(p)
+    update.message.reply_text(google_translate(p))
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
