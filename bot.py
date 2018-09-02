@@ -11,6 +11,7 @@ from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 import logging
 import os
 import ast
+import sys
 
 from translate import calls
 
@@ -18,6 +19,10 @@ from translate import calls
 TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 PORT = int(os.environ.get('PORT', '8443'))
 
+# Callback data
+CALLBACK_DATA_ANOTHER = "another"
+CALLBACK_DATA_TRANSLATE = "translate"
+CALLBACK_DATA_LEARN = "learn"
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -41,16 +46,26 @@ def user_authorized(func):
 # BOT HANDLERS:
 def translate(bot, update):
     """ Translates the user message into destination language """
+    message = update.callback_query.message if update.callback_query else update.message
     p = dict()
-    p['text'] = update.message.text
+    p['text'] = message.text
     # TODO: get from user
     p['src'] = "en"
     p['dest'] = "ru"
-    update.message.reply_text(calls.google_translate(p))
 
-def word(bot, update):
+    message.reply_text(calls.google_translate(p))
+
+def specific_word(bot, update):
+    """ Returns description of requested word. """
+    _word(bot, update, update.message.text)
+
+def random_word(bot, update):
     """ Returns random word with description """
-    word_dict = calls.get_word()
+    _word(bot, update, None)
+
+def _word(bot, update, word):
+
+    word_dict = calls.get_word(word)
     text = word_dict['word'] + ":\n"
     if 'pronunciation' in word_dict and 'all' in word_dict['pronunciation']:
         text += "[" + word_dict['pronunciation']['all'] + "]\n"
@@ -58,18 +73,24 @@ def word(bot, update):
         text += "\t" + r['definition'] + "\n"
 
     button_list = [
-        InlineKeyboardButton(text="Get another", callback_data="another"),
-        InlineKeyboardButton(text="Learn", callback_data="learn")
+        InlineKeyboardButton(text="Get another", callback_data=CALLBACK_DATA_ANOTHER),
+        InlineKeyboardButton(text="Translate", callback_data=CALLBACK_DATA_TRANSLATE)
     ]
 
     reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
 
-    bot.sendMessage(chat_id=update.callback_query.message.chat_id, text=text,
-                    reply_markup=reply_markup, message_id=update.callback_query.message.message_id)
+    chat_id = update.callback_query.message.chat_id if update.callback_query else update.message.chat_id
+    bot.sendMessage(chat_id=chat_id, text=text, reply_markup=reply_markup)
 
 def callback_eval(bot, update):
     query_data = update.callback_query.data
-    update.message.reply_text(query_data)
+    if query_data == CALLBACK_DATA_ANOTHER:
+        random_word(bot, update)
+    elif query_data == CALLBACK_DATA_TRANSLATE:
+        translate(bot, update)
+    else:
+        bot.sendMessage(chat_id=update.callback_query.message.chat_id,
+                        text="Unknown callback: " + str(query_data))
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
@@ -96,20 +117,23 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    dp.add_handler(CommandHandler("word", word))
+    dp.add_handler(CommandHandler("word", random_word))
     dp.add_handler(CallbackQueryHandler(callback_eval))
     # dp.add_handler(CommandHandler("help", help))
 
-    # on noncommand i.e message - echo the message on Telegram
-    dp.add_handler(MessageHandler(Filters.text, translate))
+    dp.add_handler(MessageHandler(Filters.text, specific_word))
 
     # log all errors
     dp.add_error_handler(error)
 
-    updater.start_webhook(listen="0.0.0.0",
-                          port=PORT,
-                          url_path=TOKEN)
-    updater.bot.set_webhook("https://afternoon-waters-98053.herokuapp.com/" + TOKEN)
+    # Start the Bot
+    if len(sys.argv) > 1 and sys.argv[1] == 'local':
+        updater.start_polling()
+    else:
+        updater.start_webhook(listen="0.0.0.0",
+                              port=PORT,
+                              url_path=TOKEN)
+        updater.bot.set_webhook("https://afternoon-waters-98053.herokuapp.com/" + TOKEN)
     updater.idle()
 
 
