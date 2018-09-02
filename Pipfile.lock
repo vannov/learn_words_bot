@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "7004b5bb3a94dd2ebf4a62f3115a144f7c1ce4d4394c89daf7f145558757bb6e"
+            "sha256": "de01906a96a44114c4116c6996f00aec36644a38217949d05e52a1a5542e9aed"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -66,6 +66,13 @@
             ],
             "version": "==1.11.5"
         },
+        "chardet": {
+            "hashes": [
+                "sha256:84ab92ed1c4d4f16916e05906b6b75a6c0fb5db821cc65e70cbd64a3e2a5eaae",
+                "sha256:fc323ffcaeaed0e0a02bf4d117757b98aed530d9ed4531e3e15460124c106691"
+            ],
+            "version": "==3.0.4"
+        },
         "cryptography": {
             "hashes": [
                 "sha256:02602e1672b62e803e08617ec286041cc453e8d43f093a5f4162095506bc0beb",
@@ -96,12 +103,38 @@
             ],
             "version": "==0.16.0"
         },
+        "get": {
+            "hashes": [
+                "sha256:9177b24df2b5be1ba86c6d6c2afbee8a77b716ab1b5bb11fcbdf65c3f1decf1a"
+            ],
+            "version": "==1.0.3"
+        },
+        "googletrans": {
+            "hashes": [
+                "sha256:49cce281c5ded86fc1ef0429e240da650bae2dd7939dc5e664d80c33fa8ba3b0"
+            ],
+            "version": "==2.3.0"
+        },
         "idna": {
             "hashes": [
                 "sha256:156a6814fb5ac1fc6850fb002e0852d56c0c8d2531923a51032d1b70760e186e",
                 "sha256:684a38a6f903c1d71d6d5fac066b58d7768af4de2b832e426ec79c30daa94a16"
             ],
             "version": "==2.7"
+        },
+        "post": {
+            "hashes": [
+                "sha256:13db715defcc1ab9e987c3a397cfb4e4eaf205023830876fb0979f905f56fd5f"
+            ],
+            "markers": "python_version != '3.2.*' and python_version >= '2.7' and python_version != '3.3.*' and python_version != '3.0.*' and python_version != '3.1.*'",
+            "version": "==1.0.2"
+        },
+        "public": {
+            "hashes": [
+                "sha256:b923b41a57ef886f4d0aee932aac848506680f3d746326149079f73a6403485f"
+            ],
+            "markers": "python_version != '3.2.*' and python_version >= '2.7' and python_version != '3.3.*' and python_version != '3.0.*' and python_version != '3.1.*'",
+            "version": "==1.0.3"
         },
         "pycparser": {
             "hashes": [
@@ -116,12 +149,40 @@
             ],
             "version": "==11.1.0"
         },
+        "query-string": {
+            "hashes": [
+                "sha256:9d06d013034e9c855e26fac2e67d154d0b556ce0353c2eba7330f2ca79fa1a95"
+            ],
+            "markers": "python_version != '3.2.*' and python_version >= '2.7' and python_version != '3.3.*' and python_version != '3.0.*' and python_version != '3.1.*'",
+            "version": "==1.0.2"
+        },
+        "request": {
+            "hashes": [
+                "sha256:009397eba1bd73ddc8fdc0745f15ecacdf38d0be2186ef431bc8357a60f0900b"
+            ],
+            "version": "==1.0.2"
+        },
+        "requests": {
+            "hashes": [
+                "sha256:63b52e3c866428a224f97cab011de738c36aec0185aa91cfacd418b5d58911d1",
+                "sha256:ec22d826a36ed72a7358ff3fe56cbd4ba69dd7a6718ffd450ff0e9df7a47ce6a"
+            ],
+            "version": "==2.19.1"
+        },
         "six": {
             "hashes": [
                 "sha256:70e8a77beed4562e7f14fe23a786b54f6296e34344c23bc42f07b15018ff98e9",
                 "sha256:832dc0e10feb1aa2c68dcc57dbb658f1c7e65b9b61af69048abc87a2db00a0eb"
             ],
             "version": "==1.11.0"
+        },
+        "urllib3": {
+            "hashes": [
+                "sha256:a68ac5e15e76e7e5dd2b8f94007233e01effe3e50e8daddf69acfd81cb686baf",
+                "sha256:b5725a0bd4ba422ab0e66e89e030c806576753ea3ee08554382c14e685d117b5"
+            ],
+            "markers": "python_version != '3.0.*' and python_version != '3.2.*' and python_version != '3.1.*' and python_version >= '2.6' and python_version < '4' and python_version != '3.3.*'",
+            "version": "==1.23"
         }
     },
     "develop": {}

@@ -20,9 +20,10 @@ bot.
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
 import os
+from googletrans import Translator
 
 
-TOKEN = "526021537:AAFJ3jUDn6ZdPvZW7JFJmOv2OZPq5FtYzaY"
+TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 PORT = int(os.environ.get('PORT', '8443'))
 
 
@@ -32,27 +33,33 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-
-# Define a few command handlers. These usually take the two arguments bot and
-# update. Error handlers also receive the raised TelegramError object in error.
-def start(bot, update):
-    """Send a message when the command /start is issued."""
-    update.message.reply_text('Hi!')
-
-
-def help(bot, update):
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
-
-
-def echo(bot, update):
-    """Echo the user message."""
-    update.message.reply_text(update.message.text)
-
+# BOT HANDLERS:
+def translate(bot, update):
+    """ Translates the user message into destination language """
+    p = dict()
+    p['text'] = update.message.text
+    # TODO: get from user
+    p['src'] = "en"
+    p['dest'] = "ru"
+    translate(p)
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, error)
+
+# HELPER FUNCTIONS:
+def google_translate(params):
+    """
+    Translates a phrase using Google Translate API.
+    :param params: dictionary containing keys:
+        * 'text': string phrase to be translated
+        * 'src': source language 2-letter code (e.g. "en")
+        * 'dest': destination language 2-letter code (e.g. "ru")
+    :return: string translation result
+    """
+    translator = Translator()
+    translated = translator.translate(params['text'], src=params['src'], dest=params['dest'])
+    return translated.text
 
 
 def main():
@@ -64,11 +71,11 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", help))
+    # dp.add_handler(CommandHandler("start", start))
+    # dp.add_handler(CommandHandler("help", help))
 
     # on noncommand i.e message - echo the message on Telegram
-    dp.add_handler(MessageHandler(Filters.text, echo))
+    dp.add_handler(MessageHandler(Filters.text, translate))
 
     # log all errors
     dp.add_error_handler(error)
