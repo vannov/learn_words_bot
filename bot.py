@@ -57,12 +57,15 @@ def word(bot, update):
     for r in word_dict['results']:
         text += "\t" + r['definition'] + "\n"
 
-    another_button = InlineKeyboardButton(text="Get another", callback_data="another")
-    learn_button = InlineKeyboardButton(text="Learn", callback_data="learn")
-    buttons = InlineKeyboardMarkup([[another_button][learn_button]])
+    button_list = [
+        InlineKeyboardButton(text="Get another", callback_data="another"),
+        InlineKeyboardButton(text="Learn", callback_data="learn")
+    ]
+
+    reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
 
     bot.sendMessage(chat_id=update.callback_query.message.chat_id, text=text,
-                    reply_markup=buttons, message_id=update.callback_query.message.message_id)
+                    reply_markup=reply_markup, message_id=update.callback_query.message.message_id)
 
 def callback_eval(bot, update):
     query_data = update.callback_query.data
@@ -72,6 +75,17 @@ def error(bot, update, error):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, error)
 
+# HELPERS
+def build_menu(buttons,
+               n_cols,
+               header_buttons=None,
+               footer_buttons=None):
+    menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
+    if header_buttons:
+        menu.insert(0, header_buttons)
+    if footer_buttons:
+        menu.append(footer_buttons)
+    return menu
 
 def main():
     """Start the bot."""
