@@ -1,26 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Simple Bot to reply to Telegram messages.
-
-This program is dedicated to the public domain under the CC0 license.
-
-This Bot uses the Updater class to handle the bot.
-
-First, a few handler functions are defined. Then, those functions are passed to
-the Dispatcher and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-
-Usage:
-Basic Echobot example, repeats messages.
-Press Ctrl-C on the command line or send a signal to the process to stop the
-bot.
+""" Telegram bot for translating and learning foreign words.
+Commands: TODO
 """
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
 import os
-from googletrans import Translator
+
+from translate import calls
 
 
 TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
@@ -41,25 +30,19 @@ def translate(bot, update):
     # TODO: get from user
     p['src'] = "en"
     p['dest'] = "ru"
-    update.message.reply_text(google_translate(p))
+    update.message.reply_text(calls.google_translate(p))
+
+def word(bot, update):
+    """ Returns random word with description """
+    word_dict = calls.get_word()
+    output = word_dict['word'] + ":\n"
+    for r in word_dict['results']:
+        res = "\t" + r['definition'] + "\n"
+    update.message.reply_text(output)
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, error)
-
-# HELPER FUNCTIONS:
-def google_translate(params):
-    """
-    Translates a phrase using Google Translate API.
-    :param params: dictionary containing keys:
-        * 'text': string phrase to be translated
-        * 'src': source language 2-letter code (e.g. "en")
-        * 'dest': destination language 2-letter code (e.g. "ru")
-    :return: string translation result
-    """
-    translator = Translator()
-    translated = translator.translate(params['text'], src=params['src'], dest=params['dest'])
-    return translated.text
 
 
 def main():
@@ -71,7 +54,7 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    # dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("word", word))
     # dp.add_handler(CommandHandler("help", help))
 
     # on noncommand i.e message - echo the message on Telegram

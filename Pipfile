@@ -4,8 +4,8 @@ verify_ssl = true
 
 [packages]
 python-telegram-bot = "*"
-request = "*"
 googletrans = "*"
+requests = "*"
 
 [requires]
 python_version = "3.7"
