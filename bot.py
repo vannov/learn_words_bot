@@ -5,9 +5,12 @@
 Commands: TODO
 """
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
+from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
+from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 import logging
 import os
+import ast
 
 from translate import calls
 
@@ -22,6 +25,19 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
+
+def user_authorized(func):
+    """ Decorator for methods requiring admin authorization. """
+    def func_wrapper(bot, update):
+        user_id = update.message.from_user.id
+        admins = ast.literal_eval(os.environ['TELEGRAM_ADMINS'])
+        if user_id in admins:
+            func(bot, update)
+        else:
+            update.message.reply_text('Sorry, unauthorized')
+
+    return func_wrapper
+
 # BOT HANDLERS:
 def translate(bot, update):
     """ Translates the user message into destination language """
@@ -35,10 +51,22 @@ def translate(bot, update):
 def word(bot, update):
     """ Returns random word with description """
     word_dict = calls.get_word()
-    output = word_dict['word'] + ":\n"
+    text = word_dict['word'] + ":\n"
+    if 'pronunciation' in word_dict:
+        text += "[" + word_dict['pronunciation'] + "]\n"
     for r in word_dict['results']:
-        res = "\t" + r['definition'] + "\n"
-    update.message.reply_text(output)
+        text += "\t" + r['definition'] + "\n"
+
+    another_button = InlineKeyboardButton(text="Get another", callback_data="another")
+    learn_button = InlineKeyboardButton(text="Learn", callback_data="learn")
+    buttons = InlineKeyboardMarkup([another_button][learn_button])
+
+    bot.sendMessage(chat_id=update.callback_query.message.chat_id, text=text,
+                    reply_markup=buttons, message_id=update.callback_query.message.message_id)
+
+def callback_eval(bot, update):
+    query_data = update.callback_query.data
+    update.message.reply_text(query_data)
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
@@ -55,6 +83,7 @@ def main():
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("word", word))
+    dp.add_handler(CallbackQueryHandler(callback_eval))
     # dp.add_handler(CommandHandler("help", help))
 
     # on noncommand i.e message - echo the message on Telegram
