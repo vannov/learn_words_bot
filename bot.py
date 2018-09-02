@@ -59,7 +59,7 @@ def word(bot, update):
 
     another_button = InlineKeyboardButton(text="Get another", callback_data="another")
     learn_button = InlineKeyboardButton(text="Learn", callback_data="learn")
-    buttons = InlineKeyboardMarkup([another_button][learn_button])
+    buttons = InlineKeyboardMarkup([[another_button][learn_button]])
 
     bot.sendMessage(chat_id=update.callback_query.message.chat_id, text=text,
                     reply_markup=buttons, message_id=update.callback_query.message.message_id)
