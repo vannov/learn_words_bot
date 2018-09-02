@@ -20,7 +20,7 @@ def google_translate(params):
     translated = translator.translate(params['text'], src=params['src'], dest=params['dest'])
     return translated.text
 
-def get_word(word):
+def get_word(word=None):
     """
     Gets a random word or specific word description from Words API.
     :param word: specific word. If None or empty string, then a random word is returned.
