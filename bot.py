@@ -52,8 +52,8 @@ def word(bot, update):
     """ Returns random word with description """
     word_dict = calls.get_word()
     text = word_dict['word'] + ":\n"
-    if 'pronunciation' in word_dict:
-        text += "[" + word_dict['pronunciation'] + "]\n"
+    if 'pronunciation' in word_dict and 'all' in word_dict['pronunciation']:
+        text += "[" + word_dict['pronunciation']['all'] + "]\n"
     for r in word_dict['results']:
         text += "\t" + r['definition'] + "\n"
 
