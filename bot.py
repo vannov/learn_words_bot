@@ -20,7 +20,7 @@ TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 PORT = int(os.environ.get('PORT', '8443'))
 
 # Callback data
-CALLBACK_DATA_ANOTHER = "another"
+CALLBACK_DATA_RANDOM = "random"
 CALLBACK_DATA_TRANSLATE = "translate"
 CALLBACK_DATA_LEARN = "learn"
 
@@ -30,6 +30,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
+cached_word = None
 
 def user_authorized(func):
     """ Decorator for methods requiring admin authorization. """
@@ -47,13 +48,16 @@ def user_authorized(func):
 def translate(bot, update):
     """ Translates the user message into destination language """
     message = update.callback_query.message if update.callback_query else update.message
-    p = dict()
-    p['text'] = message.text
-    # TODO: get from user
-    p['src'] = "en"
-    p['dest'] = "ru"
+    if cached_word is not None:
+        p = dict()
+        p['text'] = cached_word #message.text
+        # TODO: get from user
+        p['src'] = "en"
+        p['dest'] = "ru"
 
-    message.reply_text(calls.google_translate(p))
+        message.reply_text(calls.google_translate(p))
+    else:
+        error(bot, update, 'cached_word is None')
 
 def specific_word(bot, update):
     """ Returns description of requested word. """
@@ -64,37 +68,46 @@ def random_word(bot, update):
     _word(bot, update, None)
 
 def _word(bot, update, word):
+    global cached_word
 
     word_dict = calls.get_word(word)
+    cached_word = word_dict['word']
     text = word_dict['word'] + ":\n"
     if 'pronunciation' in word_dict and 'all' in word_dict['pronunciation']:
         text += "[" + word_dict['pronunciation']['all'] + "]\n"
     for r in word_dict['results']:
-        text += "\t" + r['definition'] + "\n"
+        text += "\t - " + r['definition'] + "\n"
 
     button_list = [
-        InlineKeyboardButton(text="Get another", callback_data=CALLBACK_DATA_ANOTHER),
-        InlineKeyboardButton(text="Translate", callback_data=CALLBACK_DATA_TRANSLATE)
+        InlineKeyboardButton(text="Get random", callback_data=CALLBACK_DATA_RANDOM),
+        InlineKeyboardButton(text="Translate", callback_data=CALLBACK_DATA_TRANSLATE),
+        InlineKeyboardButton(text="Learn", callback_data=CALLBACK_DATA_LEARN)
     ]
 
     reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
 
-    chat_id = update.callback_query.message.chat_id if update.callback_query else update.message.chat_id
-    bot.sendMessage(chat_id=chat_id, text=text, reply_markup=reply_markup)
+    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
+
+def learn(bot, update):
+    """ Saves word to user's list of words to learn """
+    error(bot, update, 'Sorry, Learn is not supported yet :(')
 
 def callback_eval(bot, update):
     query_data = update.callback_query.data
-    if query_data == CALLBACK_DATA_ANOTHER:
+    if query_data == CALLBACK_DATA_RANDOM:
         random_word(bot, update)
     elif query_data == CALLBACK_DATA_TRANSLATE:
         translate(bot, update)
+    elif query_data == CALLBACK_DATA_LEARN:
+        learn(bot, update)
     else:
-        bot.sendMessage(chat_id=update.callback_query.message.chat_id,
-                        text="Unknown callback: " + str(query_data))
+        error(bot, update, "Unknown callback: " + str(query_data))
 
-def error(bot, update, error):
+def error(bot, update, text):
     """Log Errors caused by Updates."""
-    logger.warning('Update "%s" caused error "%s"', update, error)
+    logger.warning('Update "%s" caused error "%s"', update, text)
+    bot.sendMessage(chat_id=get_chat_id(update),
+                    text="Error: " + str(text))
 
 # HELPERS
 def build_menu(buttons,
@@ -108,6 +121,12 @@ def build_menu(buttons,
         menu.append(footer_buttons)
     return menu
 
+def get_chat_id(update):
+    if update.callback_query:
+        return update.callback_query.message.chat_id
+    else:
+        return update.message.chat_id
+
 def main():
     """Start the bot."""
 
@@ -117,7 +136,7 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    dp.add_handler(CommandHandler("word", random_word))
+    dp.add_handler(CommandHandler("/random", random_word))
     dp.add_handler(CallbackQueryHandler(callback_eval))
     # dp.add_handler(CommandHandler("help", help))
 
@@ -138,4 +157,6 @@ def main():
 
 
 if __name__ == '__main__':
+    # os.environ['MASHAPE_KEY'] = 'NLAVwjY9PSmshCLAXj7yilMFLKUap1ukWxxjsn4oSVwFg8VYs3'
+    # os.environ['TELEGRAM_BOT_TOKEN'] = '526021537:AAFJ3jUDn6ZdPvZW7JFJmOv2OZPq5FtYzaY'
     main()
