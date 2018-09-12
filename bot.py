@@ -12,17 +12,21 @@ import logging
 import os
 import ast
 import sys
+import json
 
 from translate import calls
 
+#TODO: remove
+#os.environ['MASHAPE_KEY'] = 'NLAVwjY9PSmshCLAXj7yilMFLKUap1ukWxxjsn4oSVwFg8VYs3'
+#os.environ['TELEGRAM_BOT_TOKEN'] = '526021537:AAFJ3jUDn6ZdPvZW7JFJmOv2OZPq5FtYzaY'
 
 TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 PORT = int(os.environ.get('PORT', '8443'))
 
 # Callback data
-CALLBACK_DATA_RANDOM = "random"
-CALLBACK_DATA_TRANSLATE = "translate"
-CALLBACK_DATA_LEARN = "learn"
+CALLBACK_TYPE_RANDOM = "r"
+CALLBACK_TYPE_TRANSLATE = "t"
+CALLBACK_TYPE_LEARN = "l"
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -30,7 +34,6 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-cached_word = None
 
 def user_authorized(func):
     """ Decorator for methods requiring admin authorization. """
@@ -45,19 +48,25 @@ def user_authorized(func):
     return func_wrapper
 
 # BOT HANDLERS:
-def translate(bot, update):
+def translate(bot, update, word):
     """ Translates the user message into destination language """
-    message = update.callback_query.message if update.callback_query else update.message
-    if cached_word is not None:
-        p = dict()
-        p['text'] = cached_word #message.text
+    params = {
+        'text': word,
         # TODO: get from user
-        p['src'] = "en"
-        p['dest'] = "ru"
+        'src': 'en',
+        'dest': 'ru'
+    }
+    text = calls.google_translate(params)
 
-        message.reply_text(calls.google_translate(p))
-    else:
-        error(bot, update, 'cached_word is None')
+    button_list = [
+        InlineKeyboardButton(text="Learn",
+                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_LEARN, word))),
+        InlineKeyboardButton(text="Get random",
+                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_RANDOM, None)))
+    ]
+
+    reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
+    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
 
 def specific_word(bot, update):
     """ Returns description of requested word. """
@@ -68,40 +77,48 @@ def random_word(bot, update):
     _word(bot, update, None)
 
 def _word(bot, update, word):
-    global cached_word
-
     word_dict = calls.get_word(word)
-    cached_word = word_dict['word']
     text = word_dict['word'] + ":\n"
     if 'pronunciation' in word_dict and 'all' in word_dict['pronunciation']:
         text += "[" + word_dict['pronunciation']['all'] + "]\n"
     for r in word_dict['results']:
         text += "\t - " + r['definition'] + "\n"
 
+    word_ = word_dict['word']
+
     button_list = [
-        InlineKeyboardButton(text="Get random", callback_data=CALLBACK_DATA_RANDOM),
-        InlineKeyboardButton(text="Translate", callback_data=CALLBACK_DATA_TRANSLATE),
-        InlineKeyboardButton(text="Learn", callback_data=CALLBACK_DATA_LEARN)
+        InlineKeyboardButton(text="Translate",
+                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_TRANSLATE, word_))),
+        InlineKeyboardButton(text="Learn",
+                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_LEARN, word_))),
+        InlineKeyboardButton(text="Get random",
+                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_RANDOM, word_)))
     ]
 
-    reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
+    reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=3))
 
     bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
 
-def learn(bot, update):
+def learn(bot, update, word):
     """ Saves word to user's list of words to learn """
+    #TODO: implement
     error(bot, update, 'Sorry, Learn is not supported yet :(')
 
 def callback_eval(bot, update):
     query_data = update.callback_query.data
-    if query_data == CALLBACK_DATA_RANDOM:
-        random_word(bot, update)
-    elif query_data == CALLBACK_DATA_TRANSLATE:
-        translate(bot, update)
-    elif query_data == CALLBACK_DATA_LEARN:
-        learn(bot, update)
+    callback_dict = json.loads(query_data)
+    if isinstance(callback_dict, dict):
+        callback_type = callback_dict['type']
+        if callback_type == CALLBACK_TYPE_RANDOM:
+            random_word(bot, update)
+        elif callback_type == CALLBACK_TYPE_TRANSLATE:
+            translate(bot, update, callback_dict['word'])
+        elif callback_type == CALLBACK_TYPE_LEARN:
+            learn(bot, update, callback_dict['word'])
+        else:
+            error(bot, update, "Unknown callback type: " + str(callback_type))
     else:
-        error(bot, update, "Unknown callback: " + str(query_data))
+        error(bot, update, "Invalid callback format: " + str(query_data))
 
 def error(bot, update, text):
     """Log Errors caused by Updates."""
@@ -126,6 +143,12 @@ def get_chat_id(update):
         return update.callback_query.message.chat_id
     else:
         return update.message.chat_id
+
+def create_callback_dict(type, word):
+    return {
+        'type': type,
+        'word': word
+    }
 
 def main():
     """Start the bot."""
@@ -157,6 +180,4 @@ def main():
 
 
 if __name__ == '__main__':
-    # os.environ['MASHAPE_KEY'] = 'NLAVwjY9PSmshCLAXj7yilMFLKUap1ukWxxjsn4oSVwFg8VYs3'
-    # os.environ['TELEGRAM_BOT_TOKEN'] = '526021537:AAFJ3jUDn6ZdPvZW7JFJmOv2OZPq5FtYzaY'
     main()
