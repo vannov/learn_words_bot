@@ -17,8 +17,8 @@ import json
 from translate import calls
 
 #TODO: remove
-#os.environ['MASHAPE_KEY'] = 'NLAVwjY9PSmshCLAXj7yilMFLKUap1ukWxxjsn4oSVwFg8VYs3'
-#os.environ['TELEGRAM_BOT_TOKEN'] = '526021537:AAFJ3jUDn6ZdPvZW7JFJmOv2OZPq5FtYzaY'
+os.environ['MASHAPE_KEY'] = 'NLAVwjY9PSmshCLAXj7yilMFLKUap1ukWxxjsn4oSVwFg8VYs3'
+os.environ['TELEGRAM_BOT_TOKEN'] = '526021537:AAFJ3jUDn6ZdPvZW7JFJmOv2OZPq5FtYzaY'
 
 TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 PORT = int(os.environ.get('PORT', '8443'))
@@ -75,6 +75,17 @@ def specific_word(bot, update):
 def random_word(bot, update):
     """ Returns random word with description """
     _word(bot, update, None)
+
+def start(bot, update):
+    """ Greets the user and sends list of commands """
+    text = "Hello! This is a word-learning bot. Send any english word or press the button to get a random word"
+    button_list = [
+        InlineKeyboardButton(text="Get random",
+                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_RANDOM, None)))
+    ]
+
+    reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=1))
+    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
 
 def _word(bot, update, word):
     word_dict = calls.get_word(word)
@@ -159,9 +170,10 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    dp.add_handler(CommandHandler("/random", random_word))
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("random", random_word))
     dp.add_handler(CallbackQueryHandler(callback_eval))
-    # dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(CommandHandler("help", start))
 
     dp.add_handler(MessageHandler(Filters.text, specific_word))
 
