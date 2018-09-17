@@ -42,18 +42,14 @@ class DBHelper:
         self.conn.commit()
 
     def get_user(self, user_id):
-        cmd = """SELECT * FROM {0} WHERE id = {1}""".format(TELEGRAM_USERS_TABLE, user_id)
-        self.curs.execute(cmd);
-        res = self.curs.fetchone()
-        print('res: ' + str(res))
-        return res
+        cmd = """SELECT * FROM {} WHERE id = {}""".format(TELEGRAM_USERS_TABLE, user_id)
+        self.curs.execute(cmd)
+        return self.curs.fetchone()
 
     def get_all_users(self):
-        cmd = """SELECT * FROM {0}""".format(TELEGRAM_USERS_TABLE)
-        self.curs.execute(cmd);
-        res = self.curs.fetchone()
-        print('res: ' + str(res))
-        return res
+        cmd = """SELECT * FROM {}""".format(TELEGRAM_USERS_TABLE)
+        self.curs.execute(cmd)
+        return self.curs.fetchone()
 
     def insert_word(self, user_id, word):
         user = self.get_user(user_id)
@@ -75,12 +71,14 @@ if __name__ == '__main__':
     db_helper = DBHelper()
     #db_helper.create_table(TELEGRAM_USERS_TABLE)
     #db_helper.create_user(124124, ['lol', 'kek', 'rofl'])
-    db_helper.get_all_users()
+    print('get_all_users: ' + str(db_helper.get_all_users()))
 
     user_id = 124124
-    db_helper.get_user(user_id)
-    db_helper.insert_word(user_id, 'jopa')
-    db_helper.get_user(user_id)
+    print('get_user ' + str(user_id) + ' : ' + str(db_helper.get_user(user_id)))
+
+
+    db_helper.insert_word(user_id=user_id, word='ABC')
+    print('get_user ' + str(user_id) + ' : ' + str(db_helper.get_user(user_id)))
 
     #db_helper.get_user(999)
 
