@@ -234,8 +234,8 @@ def main():
     dp.add_handler(CommandHandler("random", random_word))
     dp.add_handler(CommandHandler("saved", get_saved))
     dp.add_handler(CommandHandler("all", get_all_saved))
-    dp.add_handler(CallbackQueryHandler(callback_eval))
     dp.add_handler(CommandHandler("help", start))
+    dp.add_handler(CallbackQueryHandler(callback_eval))
 
     dp.add_handler(MessageHandler(Filters.text, specific_word))
 
