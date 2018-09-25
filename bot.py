@@ -13,6 +13,8 @@ import os
 import ast
 import sys
 import json
+from datetime import datetime, timedelta
+import threading
 
 from translate import calls
 from translate import store
@@ -31,6 +33,20 @@ CALLBACK_TYPE_TRANSLATE = "t"
 CALLBACK_TYPE_EXPLAIN = "e"
 CALLBACK_TYPE_SAVE = "+"
 CALLBACK_TYPE_REMOVE = "-"
+CALLBACK_TYPE_SCHEDULE_START = "ss"
+CALLBACK_TYPE_SCHEDULE_COMPLETE = "sc"
+
+DEFAULT_SCHEDULE_SECONDS = 10
+
+SCHEDULE_BUTTONS = [
+    ('1 hour', 1),
+    ('3 hours', 3),
+    ('6 hours', 6),
+    ('1 day', 24),
+    ('3 days', 24 * 3),
+    ('1 week', 24 * 7),
+    ('Turn Off', 0),
+]
 
 
 # Enable logging
@@ -68,9 +84,9 @@ def translate(bot, update, word):
 
     button_list = [
         InlineKeyboardButton(text="Learn",
-                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_SAVE, word))),
+                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_SAVE, word))),
         InlineKeyboardButton(text="Get random",
-                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_RANDOM, None)))
+                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_RANDOM, None)))
     ]
 
     reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
@@ -89,7 +105,7 @@ def start(bot, update):
     text = "Hello! This is a word-learning bot. Send any english word or press the button to get a random word"
     button_list = [
         InlineKeyboardButton(text="Get random",
-                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_RANDOM, None)))
+                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_RANDOM, None)))
     ]
 
     reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=1))
@@ -107,11 +123,11 @@ def _word(bot, update, word):
 
     button_list = [
         InlineKeyboardButton(text="Translate",
-                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_TRANSLATE, word_))),
+                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_TRANSLATE, word_))),
         InlineKeyboardButton(text="Save",
-                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_SAVE, word_))),
+                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_SAVE, word_))),
         InlineKeyboardButton(text="Get random",
-                             callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_RANDOM, word_)))
+                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_RANDOM, word_)))
     ]
 
     reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=3))
@@ -148,11 +164,11 @@ def get_saved(bot, update):
     if word is not None:
         button_list = [
             InlineKeyboardButton(text="Explain",
-                                 callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_EXPLAIN, word))),
+                                 callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_EXPLAIN, word))),
             InlineKeyboardButton(text="Translate",
-                                 callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_TRANSLATE, word))),
+                                 callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_TRANSLATE, word))),
             InlineKeyboardButton(text="Remove",
-                                 callback_data=json.dumps(create_callback_dict(CALLBACK_TYPE_REMOVE, word)))
+                                 callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_REMOVE, word)))
         ]
 
         reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=3))
@@ -171,6 +187,74 @@ def get_all_saved(bot, update):
     else:
         error(bot, update, "No saved words found.")
 
+class Notification:
+    """ Class used to schedule notifications (reminders) for users. """
+    def __init__(self, bot, chat_id, seconds):
+        """ Initializes notification object
+        :param bot: bot object from Telegram callback
+        :param chat_id: ID of the chat where notification should be sent
+        :param seconds: number of seconds after which the notification should be sent
+        """
+        self.bot = bot
+        self.chat_id = chat_id
+        self.seconds = seconds
+        self.timer = None
+
+    def schedule(self):
+        """ Schedules notification in number of seconds specified in __init__(). """
+        now = datetime.now()
+        run_at = now + timedelta(seconds=self.seconds)
+        delay = (run_at - now).total_seconds()
+        self.timer = threading.Timer(delay, self.trigger)
+        self.timer.start()
+
+    def trigger(self):
+        """ Triggers a notification to the user, this method is called automatically when scheduled.
+        This method should not be called directly. """
+        text = 'Test notification'  # TODO: set reminder
+        self.bot.sendMessage(chat_id=self.chat_id, text=text)
+        # Reschedule:
+        self.schedule()
+
+    def is_scheduled(self):
+        """ :return: True if notification is scheduled, else False. """
+        return self.timer is None
+
+    def cancel(self):
+        """ Cancels scheduled notification (if scheduled). """
+        if self.timer is not None:
+            self.timer.cancel()
+            self.timer = None
+
+def schedule_start(bot, update):
+    """ Starts scheduling notifications """
+    text = 'Set notifications interval.\nCurrent interval: ...'  # TODO: read from storage
+
+    button_list = []
+    for button_text, hours in SCHEDULE_BUTTONS:
+        param = {
+            'type': CALLBACK_TYPE_SCHEDULE_COMPLETE,
+            'hours': hours
+        }
+        button_list.append(InlineKeyboardButton(text=button_text, callback_data=json.dumps(param)))
+
+    reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=4))
+    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
+
+def schedule_complete(bot, update, hours):
+    """ Completes scheduling notifications after the user selected interval value """
+    print('hours: ' + str(hours))
+    # TODO: store hours
+    if hours == 0:
+        # TODO: cancel notification
+        pass
+
+    seconds = hours * 60 * 60
+    notification = Notification(bot=bot, chat_id=get_chat_id(update), seconds=seconds)
+    notification.schedule()
+    text = 'Notification scheduled in {} hours'.format(hours)  # TODO: format output
+    bot.sendMessage(chat_id=get_chat_id(update), text=text)
+
 def callback_eval(bot, update):
     query_data = update.callback_query.data
     callback_dict = json.loads(query_data)
@@ -186,6 +270,10 @@ def callback_eval(bot, update):
             save(bot, update, callback_dict['word'])
         elif callback_type == CALLBACK_TYPE_REMOVE:
             remove(bot, update, callback_dict['word'])
+        elif callback_type == CALLBACK_TYPE_SCHEDULE_START:
+            schedule_start(bot, update)
+        elif callback_type == CALLBACK_TYPE_SCHEDULE_COMPLETE:
+            schedule_complete(bot, update, callback_dict['hours'])
         else:
             error(bot, update, "Unknown callback type: " + str(callback_type))
     else:
@@ -215,11 +303,22 @@ def get_chat_id(update):
     else:
         return update.message.chat_id
 
-def create_callback_dict(type, word):
+def create_callback_word_dict(type, word):
     return {
         'type': type,
         'word': word
     }
+
+def create_callback_schedule_button_list(text_value_pairs, frequency):
+    button_list = []
+    for text, value in text_value_pairs:
+        param = {
+            'type': CALLBACK_TYPE_SCHEDULE_COMPLETE,
+            'frequency': frequency,
+            'value': value
+        }
+        button_list.append(InlineKeyboardButton(text=text, callback_data=json.dumps(param)))
+    return button_list
 
 def main():
     """Start the bot."""
@@ -234,6 +333,7 @@ def main():
     dp.add_handler(CommandHandler("random", random_word))
     dp.add_handler(CommandHandler("saved", get_saved))
     dp.add_handler(CommandHandler("all", get_all_saved))
+    dp.add_handler(CommandHandler("schedule", schedule_start))
     dp.add_handler(CommandHandler("help", start))
     dp.add_handler(CallbackQueryHandler(callback_eval))
 
