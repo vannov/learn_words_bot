@@ -8,6 +8,8 @@ Commands: TODO
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
 from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
 from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
+from telegram.keyboardbutton import KeyboardButton
+from telegram.replykeyboardmarkup import ReplyKeyboardMarkup
 import logging
 import os
 import ast
@@ -104,11 +106,10 @@ def start(bot, update):
     """ Greets the user and sends list of commands """
     text = "Hello! This is a word-learning bot. Send any english word or press the button to get a random word"
     button_list = [
-        InlineKeyboardButton(text="Get random",
-                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_RANDOM, None)))
+        [ KeyboardButton(text="/random"), KeyboardButton(text="/saved") ],
+        [ KeyboardButton(text="/all"), KeyboardButton(text="/help")]
     ]
-
-    reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=1))
+    reply_markup = ReplyKeyboardMarkup(keyboard=button_list)
     bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
 
 def _word(bot, update, word):
