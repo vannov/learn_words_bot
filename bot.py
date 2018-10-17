@@ -10,6 +10,7 @@ from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
 from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 from telegram.keyboardbutton import KeyboardButton
 from telegram.replykeyboardmarkup import ReplyKeyboardMarkup
+from telegram.replykeyboardremove import ReplyKeyboardRemove
 import logging
 import os
 import ast
@@ -98,12 +99,7 @@ def random_word(bot, update):
 def start(bot, update):
     """ Greets the user and sends list of commands """
     text = "Hello! This is a word-learning bot. Send any english word or press the button to get a random word"
-    button_list = [
-        [ KeyboardButton(text="/random"), KeyboardButton(text="/saved") ],
-        [ KeyboardButton(text="/all"), KeyboardButton(text="/help")]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard=button_list)
-    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
+    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=get_permanent_reply_keyboard_markup())
 
 def _word(bot, update, word):
     word_dict = calls.get_word(word)
@@ -180,6 +176,17 @@ def get_all_saved(bot, update):
         bot.sendMessage(chat_id=get_chat_id(update), text=str(words))
     else:
         error(bot, update, "No saved words found.")
+
+def show_keyboard(bot, update):
+    """ Shows permanent reply keyboard """
+    text = "Reply keyboard shown"
+    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=get_permanent_reply_keyboard_markup())
+
+def hide_keyboard(bot, update):
+    """ Hides permanent reply keyboard """
+    text = "Reply keyboard hidden"
+    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=ReplyKeyboardRemove())
+
 
 class Notification:
     """ Class used to schedule notifications (reminders) for users. """
@@ -314,6 +321,13 @@ def create_callback_schedule_button_list(text_value_pairs, frequency):
         button_list.append(InlineKeyboardButton(text=text, callback_data=json.dumps(param)))
     return button_list
 
+def get_permanent_reply_keyboard_markup():
+    button_list = [
+        [ KeyboardButton(text="/random"), KeyboardButton(text="/saved") ],
+        [ KeyboardButton(text="/all"), KeyboardButton(text="/help")]
+    ]
+    return ReplyKeyboardMarkup(keyboard=button_list)
+
 def main():
     """Start the bot."""
 
@@ -338,6 +352,8 @@ def main():
     dp.add_handler(CommandHandler("random", random_word))
     dp.add_handler(CommandHandler("saved", get_saved))
     dp.add_handler(CommandHandler("all", get_all_saved))
+    dp.add_handler(CommandHandler("show_keyboard", show_keyboard))
+    dp.add_handler(CommandHandler("hide_keyboard", hide_keyboard))
     dp.add_handler(CommandHandler("schedule", schedule_start))
     dp.add_handler(CommandHandler("help", start))
     dp.add_handler(CallbackQueryHandler(callback_eval))

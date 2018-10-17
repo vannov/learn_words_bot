@@ -3,3 +3,5 @@ saved - get a random word from the list of saved words
 all - get all saved words
 help - print welcome message and instructions
 schedule - set up notifications schedule
+show_keyboard - show permanent reply keyboard
+hide_keyboard - hide permanent reply keyboard
