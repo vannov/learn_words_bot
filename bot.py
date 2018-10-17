@@ -18,16 +18,9 @@ import json
 from datetime import datetime, timedelta
 import threading
 
-from translate import calls
-from translate import store
+from translate import calls, store, local
 
-#TODO: remove
-# os.environ['MASHAPE_KEY'] = 'NLAVwjY9PSmshCLAXj7yilMFLKUap1ukWxxjsn4oSVwFg8VYs3'
-# os.environ['TELEGRAM_BOT_TOKEN'] = '526021537:AAFJ3jUDn6ZdPvZW7JFJmOv2OZPq5FtYzaY'
-# os.environ['REDIS_URL'] = 'redis://h:p2a1b69e6106ff91736dd446c786cecfd24a56ca4589c2ae34867b32371ea8ef3@ec2-52-204-102-201.compute-1.amazonaws.com:63269'
-
-TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
-PORT = int(os.environ.get('PORT', '8443'))
+LOCAL_ARGUMENT = 'local'
 
 # Callback data
 CALLBACK_TYPE_RANDOM = "r"
@@ -324,7 +317,18 @@ def create_callback_schedule_button_list(text_value_pairs, frequency):
 def main():
     """Start the bot."""
 
-    updater = Updater(TOKEN)
+    local_run = False
+    if len(sys.argv) > 1 and sys.argv[1] == LOCAL_ARGUMENT:
+        local_run = True
+
+    if local_run:
+        # Setting environment variables when running on a local machine
+        local.set_env_viariables()
+
+    token = os.environ['TELEGRAM_BOT_TOKEN']
+    port = int(os.environ.get('PORT', '8443'))
+
+    updater = Updater(token)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -347,14 +351,14 @@ def main():
     global store_helper
     store_helper = store.Store()
 
-    # Start the Bot
-    if len(sys.argv) > 1 and sys.argv[1] == 'local':
+    # Start the Bot. Use polling when running on a local machine, otherwise use webhooks.
+    if local_run:
         updater.start_polling()
     else:
         updater.start_webhook(listen="0.0.0.0",
-                              port=PORT,
-                              url_path=TOKEN)
-        updater.bot.set_webhook("https://afternoon-waters-98053.herokuapp.com/" + TOKEN)
+                              port=port,
+                              url_path=token)
+        updater.bot.set_webhook("https://afternoon-waters-98053.herokuapp.com/" + token)
     updater.idle()
 
 

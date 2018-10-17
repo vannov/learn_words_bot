@@ -2,7 +2,6 @@ import os
 import requests
 from googletrans import Translator
 
-#GOOGLE_TRANSLATE_URL = 'https://translation.googleapis.com/language/translate/v2'
 WORDS_URL = 'https://wordsapiv1.p.mashape.com/words/'
 WORDS_RANDOM = '?hasDetails=typeOf&random=true'
 
