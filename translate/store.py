@@ -23,39 +23,72 @@ class Store:
         self.r = redis.from_url(os.environ['REDIS_URL'])
 
     def add_user(self, user_id, src, trg):
-        #TODO: implement
-        pass
+        """ Creates a new record in Redis storage
+        :param user_id: user id
+        :param src: source language 2-letter code (e.g. "en")
+        :param trg: target language 2-letter code (e.g. "en")
+        :return Error code
+        """
+        if self.get_user_obj(user_id) is None:
+            obj = {
+                'words': [],
+                'src': src,
+                'trg': trg
+            }
+            self.set_user_obj(user_id, obj)
+            return Error.SUCCESS
+        else:
+            # User already exists
+            return Error.ALREADY_SAVED
+
 
     def set_src_lang(self, user_id, src):
-        #TODO
-        pass
+        """ Changes user's source language.
+        :param user_id: User ID
+        :param src: source language 2-letter code (e.g. "en")
+        :return Error code
+        """
+        obj = self.get_user_obj(user_id)
+        if obj is not None:
+            # User not found
+            return Error.NOT_FOUND
 
-    def set_dst_lang(self, user_id, dst):
-        #TODO
-        pass
+        if src != obj['src']:
+            obj['src'] = src
+            self.set_user_obj(user_id, obj)
+            return Error.SUCCESS
+        else:
+            return Error.ALREADY_SAVED
+
+    def set_trg_lang(self, user_id, trg):
+        """ Changes user's target language
+        :param user_id: User ID
+        :param trg: target language 2-letter code (e.g. "en")
+        :return: Error code
+        """
+        obj = self.get_user_obj(user_id)
+        if obj is not None:
+            # User not found
+            return Error.NOT_FOUND
+
+        if trg != obj['trg']:
+            obj['trg'] = trg
+            self.set_user_obj(user_id, obj)
+            return Error.SUCCESS
+        else:
+            return Error.ALREADY_SAVED
 
     def get_user_obj(self, user_id):
         unpacked_object = pickle.loads(self.r.get(user_id))
         if isinstance(unpacked_object, dict):
             return unpacked_object
         else:
-            # User not found - return default object
-            return {
-                'words': [],
-                'src': DEFAULT_SOURCE_LANGUAGE,
-                'trg': DEFAULT_TARGE_LANGUAGE
-            }
+            # User not found
+            return None
 
     def set_user_obj(self, user_id, obj):
         pickled_object = pickle.dumps(obj)
         self.r.set(user_id, pickled_object)
-
-    # def get_user_words(self, user_id):
-    #     unpacked_object = pickle.loads(self.r.get(user_id))
-    #     if isinstance(unpacked_object, dict) and 'words' in unpacked_object:
-    #         return unpacked_object['words']
-    #     else:
-    #         return []
 
     def add_word(self, user_id, word):
         obj = self.get_user_obj(user_id)
