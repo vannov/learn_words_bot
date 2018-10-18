@@ -64,10 +64,10 @@ class Store:
             # No saved words
             return None
 
-
-if __name__ == '__main__':
-    # test
-    os.environ['REDIS_URL'] = '' # set Redis URL
-    s = Store()
-    user_id = 0 # set user ID
-    print('ALL WORDS: ' + str(s.get_all_words(user_id)))
+    def is_saved(self, user_id, word):
+        """ Checks if word is saved in the user's list words.
+        :param user_id: user ID
+        :param word: string word to check
+        :return: True if the word is saved, else false
+        """
+        return self.get_word_index(user_id, word) != -1
