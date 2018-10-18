@@ -1,6 +1,7 @@
 import os
 import redis
 import random
+import pickle
 from enum import Enum
 
 
@@ -11,6 +12,8 @@ class Error(Enum):
     ALREADY_SAVED = 2
     NOT_FOUND = 3
 
+DEFAULT_SOURCE_LANGUAGE = 'en'
+DEFAULT_TARGE_LANGUAGE = 'ru'
 
 class Store:
     """ Wrapper around Redis key/value data store. Key is user ID, value is list of words.
@@ -19,50 +22,73 @@ class Store:
     def __init__(self):
         self.r = redis.from_url(os.environ['REDIS_URL'])
 
-    def get_word_index(self, user_id, word):
-        """ Returns index of word in the user's list of words or -1 if the word is not present. """
-        size = self.r.llen(user_id)
-        if size != 0:
-            words = self.r.lrange(user_id, 0, size - 1)
-            words = list(map(lambda x: x.decode("utf-8"), words))
-            if word in words:
-                return words.index(word)
-        return -1
+    def add_user(self, user_id, src, trg):
+        #TODO: implement
+        pass
+
+    def set_src_lang(self, user_id, src):
+        #TODO
+        pass
+
+    def set_dst_lang(self, user_id, dst):
+        #TODO
+        pass
+
+    def get_user_obj(self, user_id):
+        unpacked_object = pickle.loads(self.r.get(user_id))
+        if isinstance(unpacked_object, dict):
+            return unpacked_object
+        else:
+            # User not found - return default object
+            return {
+                'words': [],
+                'src': DEFAULT_SOURCE_LANGUAGE,
+                'trg': DEFAULT_TARGE_LANGUAGE
+            }
+
+    def set_user_obj(self, user_id, obj):
+        pickled_object = pickle.dumps(obj)
+        self.r.set(user_id, pickled_object)
+
+    # def get_user_words(self, user_id):
+    #     unpacked_object = pickle.loads(self.r.get(user_id))
+    #     if isinstance(unpacked_object, dict) and 'words' in unpacked_object:
+    #         return unpacked_object['words']
+    #     else:
+    #         return []
 
     def add_word(self, user_id, word):
-        if self.get_word_index(user_id, word) == -1:
-            self.r.lpush(user_id, word)
+        obj = self.get_user_obj(user_id)
+        if word not in obj['words']:
+            obj['words'].append(word)
+            self.set_user_obj(user_id, obj)
             return Error.SUCCESS
         else:
             return Error.ALREADY_SAVED
 
     def remove_word(self, user_id, word):
-        index = self.get_word_index(user_id, word)
-        if index != -1:
-            self.r.lrem(name=user_id, value=word)
+        obj = self.get_user_obj(user_id)
+        if word in obj['words']:
+            obj['words'].remove(word)
+            self.set_user_obj(user_id, obj)
             return Error.SUCCESS
         else:
             return Error.NOT_FOUND
 
     def get_word(self, user_id):
-        size = self.r.llen(user_id)
+        obj = self.get_user_obj(user_id)
+        size = len(obj['words'])
         if size != 0:
             index = random.randint(0, size-1)
-            word = self.r.lindex(user_id, index)
-            return word.decode("utf-8")
+            word = obj['words'][index]
+            return word
         else:
             # No saved words found for user_id
             return None
 
     def get_all_words(self, user_id):
-        size = self.r.llen(user_id)
-        if size != 0:
-            words = self.r.lrange(user_id, 0, size - 1)
-            words = list(map(lambda x: x.decode("utf-8"), words))
-            return words
-        else:
-            # No saved words
-            return None
+        obj = self.get_user_obj(user_id)
+        return obj['words']
 
     def is_saved(self, user_id, word):
         """ Checks if word is saved in the user's list words.
@@ -70,4 +96,5 @@ class Store:
         :param word: string word to check
         :return: True if the word is saved, else false
         """
-        return self.get_word_index(user_id, word) != -1
+        obj = self.get_user_obj(user_id)
+        return word in obj['words']
