@@ -11,11 +11,13 @@ from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 from telegram.keyboardbutton import KeyboardButton
 from telegram.replykeyboardmarkup import ReplyKeyboardMarkup
 from telegram.replykeyboardremove import ReplyKeyboardRemove
+from googletrans.constants import LANGUAGES
 import logging
 import os
 import ast
 import sys
 import json
+import math
 
 
 from translate import calls, store, local
@@ -24,9 +26,10 @@ LOCAL_ARGUMENT = 'local'
 
 WEBHOOK_URL = 'https://afternoon-waters-98053.herokuapp.com/'
 
-# TODO: get from user
-SOURCE_LANGUAGE = 'en'
-TARGET_LANGUAGE = 'ru'
+DEFAULT_SOURCE_LANGUAGE = 'auto'
+DEFAULT_TARGET_LANGUAGE = 'en'
+
+LANG_BUTTONS_PER_REPLY = 36
 
 # Callback data
 CALLBACK_TYPE_RANDOM = "r"
@@ -34,7 +37,10 @@ CALLBACK_TYPE_TRANSLATE = "t"
 CALLBACK_TYPE_EXPLAIN = "e"
 CALLBACK_TYPE_SAVE = "+"
 CALLBACK_TYPE_REMOVE = "-"
-
+CALLBACK_TYPE_SOURCE_LANG = "sl"
+CALLBACK_TYPE_TARGET_LANG = "tl"
+CALLBACK_TYPE_SOURCE_LANG_PAGE = "slp"
+CALLBACK_TYPE_TARGET_LANG_PAGE = "tlp"
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -62,16 +68,20 @@ def user_authorized(func):
 def translate(bot, update, word):
     """ Translates the user message into destination language """
     global store_helper
+    user_id = update.effective_user.id
+
+    src = store_helper.get_src_lang(user_id) if not None else DEFAULT_SOURCE_LANGUAGE
+    trg = store_helper.get_trg_lang(user_id) if not None else DEFAULT_TARGET_LANGUAGE
+
     params = {
         'text': word,
-        'src': SOURCE_LANGUAGE,
-        'dest': TARGET_LANGUAGE
+        'src': src,
+        'dest': trg
     }
     text = calls.google_translate(params)
 
     button_list = []
 
-    user_id = update.effective_user.id
     already_saved = store_helper.is_saved(user_id, word)
     if already_saved:
         remove_button = InlineKeyboardButton(text="Remove",
@@ -192,6 +202,55 @@ def hide_keyboard(bot, update):
     text = "Reply keyboard hidden"
     bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=ReplyKeyboardRemove())
 
+def source(bot, update, page=0):
+    # TODO
+    pass
+
+def target(bot, update, page=0):
+    """ Starts target language selection dialog. """
+    global store_helper
+    user_id = update.effective_user.id
+    src = store_helper.get_src_lang(user_id)
+    trg = store_helper.get_trg_lang(user_id)
+    text = "Your current source language: " + str(src) + ", target language: " + str(trg) + \
+           ".\nPlease chose new target language: "
+
+    button_list = list(map(lambda x: InlineKeyboardButton(text=x[1],
+                        callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_TARGET_LANG, x[0]))),
+                    list(LANGUAGES.items())[page * LANG_BUTTONS_PER_REPLY : (page + 1) * LANG_BUTTONS_PER_REPLY]))
+
+    pages_number = math.ceil(len(LANGUAGES) / LANG_BUTTONS_PER_REPLY)
+    if pages_number > 1:
+        if page > 0:
+            button_list.append(InlineKeyboardButton(text="Previous page",
+                               callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_TARGET_LANG_PAGE, page-1))))
+        if page < pages_number - 1:
+            button_list.append(InlineKeyboardButton(text="Next page",
+                               callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_TARGET_LANG_PAGE, page+1))))
+
+    reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=4))
+    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
+
+def _set_source_lang(bot, update, lang):
+    global store_helper
+    user_id = update.effective_user.id
+    res = store_helper.set_src_lang(user_id, lang)
+    if res == store.Error.SUCCESS or res == store.Error.ALREADY_SAVED:
+        bot.sendMessage(chat_id=get_chat_id(update),
+                    text="Source language is set to: " + str(lang))
+    else:
+        error(bot, update, "Error changing source language: " + str(res))
+
+def _set_target_lang(bot, update, lang):
+    global store_helper
+    user_id = update.effective_user.id
+    res = store_helper.set_trg_lang(user_id, lang)
+    if res == store.Error.SUCCESS or res == store.Error.ALREADY_SAVED:
+        bot.sendMessage(chat_id=get_chat_id(update),
+                    text="Target language is set to: " + str(lang))
+    else:
+        error(bot, update, "Error changing target language: " + str(res))
+
 def callback_eval(bot, update):
     query_data = update.callback_query.data
     callback_dict = json.loads(query_data)
@@ -207,6 +266,17 @@ def callback_eval(bot, update):
             save(bot, update, callback_dict['word'])
         elif callback_type == CALLBACK_TYPE_REMOVE:
             remove(bot, update, callback_dict['word'])
+        elif callback_type == CALLBACK_TYPE_SOURCE_LANG:
+            _set_source_lang(bot, update, callback_dict['word'])
+        elif callback_type == CALLBACK_TYPE_TARGET_LANG:
+            _set_target_lang(bot, update, callback_dict['word'])
+        elif callback_type == CALLBACK_TYPE_SOURCE_LANG_PAGE:
+            page_number = callback_dict['word']
+            source(bot, update, page_number)
+        elif callback_type == CALLBACK_TYPE_TARGET_LANG_PAGE:
+            page_number = callback_dict['word']
+            target(bot, update, page_number)
+            pass
         else:
             error(bot, update, "Unknown callback type: " + str(callback_type))
     else:
@@ -273,6 +343,8 @@ def main():
     dp.add_handler(CommandHandler("random", random_word))
     dp.add_handler(CommandHandler("saved", get_saved))
     dp.add_handler(CommandHandler("all", get_all_saved))
+    dp.add_handler(CommandHandler("source", source))
+    dp.add_handler(CommandHandler("target", target))
     dp.add_handler(CommandHandler("show_keyboard", show_keyboard))
     dp.add_handler(CommandHandler("hide_keyboard", hide_keyboard))
     dp.add_handler(CommandHandler("help", start))

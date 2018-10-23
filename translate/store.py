@@ -12,8 +12,6 @@ class Error(Enum):
     ALREADY_SAVED = 2
     NOT_FOUND = 3
 
-DEFAULT_SOURCE_LANGUAGE = 'en'
-DEFAULT_TARGE_LANGUAGE = 'ru'
 
 class Store:
     """ Wrapper around Redis key/value data store. Key is user ID, value is list of words.
@@ -41,6 +39,27 @@ class Store:
             # User already exists
             return Error.ALREADY_SAVED
 
+    def get_src_lang(self, user_id):
+        """ Get user's source language.
+        :param user_id: User ID
+        :return: source language 2-letter code (e.g. "en") or None if not found
+        """
+        obj = self.get_user_obj(user_id)
+        if obj is None:
+            # User not found
+            return None
+        return obj['src']
+
+    def get_trg_lang(self, user_id):
+        """ Get user's target language.
+        :param user_id: User ID
+        :return: target language 2-letter code (e.g. "en") or None if not found
+        """
+        obj = self.get_user_obj(user_id)
+        if obj is None:
+            # User not found
+            return None
+        return obj['trg']
 
     def set_src_lang(self, user_id, src):
         """ Changes user's source language.
@@ -49,7 +68,7 @@ class Store:
         :return Error code
         """
         obj = self.get_user_obj(user_id)
-        if obj is not None:
+        if obj is None:
             # User not found
             return Error.NOT_FOUND
 
@@ -67,7 +86,7 @@ class Store:
         :return: Error code
         """
         obj = self.get_user_obj(user_id)
-        if obj is not None:
+        if obj is None:
             # User not found
             return Error.NOT_FOUND
 
