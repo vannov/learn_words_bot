@@ -5,6 +5,7 @@ verify_ssl = true
 [packages]
 python-telegram-bot = "*"
 googletrans = "*"
+py-translator = "*"
 requests = "*"
 "psycopg2-binary" = "*"
 redis = "*"
