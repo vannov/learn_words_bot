@@ -20,7 +20,7 @@ import json
 import math
 
 
-from translate import calls, store, local
+from bot_helpers import calls, store, local
 
 LOCAL_ARGUMENT = 'local'
 
