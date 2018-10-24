@@ -11,6 +11,7 @@ from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 from telegram.keyboardbutton import KeyboardButton
 from telegram.replykeyboardmarkup import ReplyKeyboardMarkup
 from telegram.replykeyboardremove import ReplyKeyboardRemove
+from telegram.parsemode import ParseMode
 from googletrans.constants import LANGUAGES
 import logging
 import os
@@ -78,26 +79,18 @@ def translate(bot, update, word):
         'src': src,
         'dest': trg
     }
-    text = calls.google_translate(params)
+    translation = calls.google_translate(params)
+    text = translation.text
 
-    button_list = []
-
-    already_saved = store_helper.is_saved(user_id, word)
-    if already_saved:
-        remove_button = InlineKeyboardButton(text="Remove",
-                                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_REMOVE, word)))
-        button_list.append(remove_button)
-    else:
-        save_button = InlineKeyboardButton(text="Save",
-                                           callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_SAVE, word)))
-        button_list.append(save_button)
+    button_list = get_save_remove_button_list(user_id, word)
 
     reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=1))
     bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
 
 def specific_word(bot, update):
     """ Returns description of requested word. """
-    _word(bot, update, update.message.text)
+    #_word(bot, update, update.message.text)
+    _explain_word_google(bot, update, update.message.text)
 
 def random_word(bot, update):
     """ Returns random word with description """
@@ -123,21 +116,47 @@ def _word(bot, update, word):
         InlineKeyboardButton(text="Translate",
                              callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_TRANSLATE, word_))),
     ]
-
     user_id = update.effective_user.id
-    already_saved = store_helper.is_saved(user_id, word_)
-    if already_saved:
-        remove_button = InlineKeyboardButton(text="Remove",
-                                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_REMOVE, word)))
-        button_list.append(remove_button)
-    else:
-        save_button = InlineKeyboardButton(text="Save",
-                                           callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_SAVE, word)))
-        button_list.append(save_button)
-
+    button_list.extend(get_save_remove_button_list(user_id, word))
     reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
-
     bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
+
+def _explain_word_google(bot, update, word):
+    """ Uses google translate API to get a word explanation and examples. """
+    global store_helper
+    user_id = update.effective_user.id
+
+    src = store_helper.get_src_lang(user_id) if not None else DEFAULT_SOURCE_LANGUAGE
+    params = {
+        'text': word,
+        'src': src,
+        # Using source language as target on purpose, to get explanation in source language:
+        'dest': src
+    }
+    translation = calls.google_translate(params)
+    text = '<b>' + translation.text + ':</b>'
+    if translation.pronunciation:
+        text += '[' + translation.pronunciation + ']'
+    for definition in translation.extra_data['definitions']:
+        if len(definition) >= 2:
+            part_of_speech = definition[0]
+            text += '\n <i>' + part_of_speech + ':</i>'
+            for details in definition[1]:
+                if len(details) > 0:
+                    explanation = details[0]
+                    text += '\n  – ' + explanation
+                    if len(details) >= 3:
+                        example = details[2]
+                        text += ' <i>"' + example + '"</i>'
+
+    button_list = [
+        InlineKeyboardButton(text="Translate",
+                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_TRANSLATE, word))),
+    ]
+    user_id = update.effective_user.id
+    button_list.extend(get_save_remove_button_list(user_id, word))
+    reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=2))
+    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 def save(bot, update, word):
     """ Saves word to user's list of words to learn """
@@ -318,6 +337,20 @@ def get_permanent_reply_keyboard_markup():
         [ KeyboardButton(text="/all"), KeyboardButton(text="/help")]
     ]
     return ReplyKeyboardMarkup(keyboard=button_list)
+
+def get_save_remove_button_list(user_id, word):
+    global store_helper
+    button_list = []
+    already_saved = store_helper.is_saved(user_id, word)
+    if already_saved:
+        remove_button = InlineKeyboardButton(text="Remove",
+                                             callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_REMOVE, word)))
+        button_list.append(remove_button)
+    else:
+        save_button = InlineKeyboardButton(text="Save",
+                                           callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_SAVE, word)))
+        button_list.append(save_button)
+    return button_list
 
 def main():
     """Start the bot."""

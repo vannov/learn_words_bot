@@ -7,6 +7,7 @@ from py_translator import Translator
 WORDS_URL = 'https://wordsapiv1.p.mashape.com/words/'
 WORDS_RANDOM = '?hasDetails=typeOf&random=true'
 
+translator = None
 
 def google_translate(params):
     """
@@ -15,11 +16,13 @@ def google_translate(params):
         * 'text': string phrase to be translated
         * 'src': source language 2-letter code (e.g. "en")
         * 'dest': destination language 2-letter code (e.g. "ru")
-    :return: string translation result
+    :return: Translated object with translation result
     """
-    translator = Translator()
+    global translator
+    if translator is None:
+        translator = Translator()
     translated = translator.translate(params['text'], src=params['src'], dest=params['dest'])
-    return translated.text
+    return translated
 
 def get_word(word=None):
     """
