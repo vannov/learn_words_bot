@@ -46,6 +46,15 @@ CALLBACK_TYPE_TARGET_LANG_PAGE = "tlp"
 SOURCE_LANGUAGE = 1
 TARGET_LANGUAGE = 2
 
+COMMANDS =  "/random - get random English word\n"\
+            "/saved - get a random word from the list of saved words\n"\
+            "/all - get all saved words\n"\
+            "/source - select source language\n"\
+            "/target - select target language\n"\
+            "/show_keyboard - show permanent reply keyboard\n"\
+            "/hide_keyboard - hide permanent reply keyboard\n"\
+            "/help - print welcome message and instructions\n"
+
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -92,12 +101,23 @@ def translate(bot, update, word):
 
 def specific_word(bot, update):
     """ Returns description of requested word. """
-    #_word(bot, update, update.message.text)
     _explain_word_google(bot, update, update.message.text)
 
 def random_word(bot, update):
     """ Returns random word with description """
-    _word(bot, update, None)
+    global store_helper
+    user_id = update.effective_user.id
+    src = store_helper.get_src_lang(user_id)
+    if src == 'en' or src == DEFAULT_SOURCE_LANGUAGE:
+        # Get random word from Words API
+        word_dict = calls.get_word()
+        # Get word explanation and examples from Google Translate.
+        _explain_word_google(bot, update, word_dict['word'])
+    else:
+        src_str = LANGUAGES[src] if src in LANGUAGES else src if not None else "not set"
+        text = "Sorry, random word feature is supported only for English source language." \
+               "Your current source language: <b>" + src_str + "</b>."
+        bot.sendMessage(chat_id=get_chat_id(update), text=text, parse_mode=ParseMode.HTML)
 
 def start(bot, update):
     """ Greets the user and sends list of commands """
@@ -115,7 +135,7 @@ def start(bot, update):
         first_time = True
 
     text = "Hello, " + first_name + "! This is a word-learning bot. Send any English word or press the button to get a random word." \
-            "\nList of commands: TODO"
+            "\n\nList of commands:\n" + COMMANDS
     if first_time:
         text += "\n\nBut first please select your target language:"
 
@@ -125,6 +145,7 @@ def start(bot, update):
         _show_language_selection(bot=bot, update=update, lang_type=TARGET_LANGUAGE, page=0)
 
 def _word(bot, update, word):
+    """ Gets word from Words API. Unused currently. """
     word_dict = calls.get_word(word)
     text = word_dict['word'] + ":\n"
     if 'pronunciation' in word_dict and 'all' in word_dict['pronunciation']:
@@ -323,7 +344,7 @@ def callback_eval(bot, update):
         elif callback_type == CALLBACK_TYPE_TRANSLATE:
             translate(bot, update, callback_dict['word'])
         elif callback_type == CALLBACK_TYPE_EXPLAIN:
-            _word(bot, update, callback_dict['word'])
+            _explain_word_google(bot, update, callback_dict['word'])
         elif callback_type == CALLBACK_TYPE_SAVE:
             save(bot, update, callback_dict['word'])
         elif callback_type == CALLBACK_TYPE_REMOVE:

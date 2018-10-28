@@ -1,6 +1,8 @@
 random - get random English word
 saved - get a random word from the list of saved words
 all - get all saved words
+source - select source language
+target - select target language
 show_keyboard - show permanent reply keyboard
 hide_keyboard - hide permanent reply keyboard
 help - print welcome message and instructions
