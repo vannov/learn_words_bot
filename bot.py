@@ -43,6 +43,9 @@ CALLBACK_TYPE_TARGET_LANG = "tl"
 CALLBACK_TYPE_SOURCE_LANG_PAGE = "slp"
 CALLBACK_TYPE_TARGET_LANG_PAGE = "tlp"
 
+SOURCE_LANGUAGE = 1
+TARGET_LANGUAGE = 2
+
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -98,11 +101,30 @@ def random_word(bot, update):
 
 def start(bot, update):
     """ Greets the user and sends list of commands """
-    text = "Hello! This is a word-learning bot. Send any english word or press the button to get a random word"
+    global store_helper
+    user_id = update.effective_user.id
+    first_name = update.effective_user.first_name
+
+    first_time = False
+    if store_helper.get_user_obj(user_id) is None:
+        # User ID is not in storage, creating a new record
+        src = DEFAULT_SOURCE_LANGUAGE
+        lang_code = update.effective_user.language_code[:2]
+        trg = lang_code if lang_code in LANGUAGES else DEFAULT_TARGET_LANGUAGE
+        store_helper.add_user(user_id, src, trg)
+        first_time = True
+
+    text = "Hello, " + first_name + "! This is a word-learning bot. Send any English word or press the button to get a random word." \
+            "\nList of commands: TODO"
+    if first_time:
+        text += "\n\nBut first please select your target language:"
+
     bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=get_permanent_reply_keyboard_markup())
 
+    if first_time:
+        _show_language_selection(bot=bot, update=update, lang_type=TARGET_LANGUAGE, page=0)
+
 def _word(bot, update, word):
-    global store_helper
     word_dict = calls.get_word(word)
     text = word_dict['word'] + ":\n"
     if 'pronunciation' in word_dict and 'all' in word_dict['pronunciation']:
@@ -222,41 +244,61 @@ def hide_keyboard(bot, update):
     bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=ReplyKeyboardRemove())
 
 def source(bot, update, page=0):
-    # TODO
-    pass
+    """ Starts source language selection dialog. """
+    _show_language_selection(bot=bot, update=update, lang_type=SOURCE_LANGUAGE, page=page)
 
 def target(bot, update, page=0):
     """ Starts target language selection dialog. """
+    _show_language_selection(bot=bot, update=update, lang_type=TARGET_LANGUAGE, page=page)
+
+def _show_language_selection(bot, update, lang_type, page=0):
+    if lang_type == SOURCE_LANGUAGE:
+        lang_str = 'source'
+        callback_select_type = CALLBACK_TYPE_SOURCE_LANG
+        callback_page_type = CALLBACK_TYPE_SOURCE_LANG_PAGE
+    elif lang_type == TARGET_LANGUAGE:
+        lang_str = 'target'
+        callback_select_type = CALLBACK_TYPE_TARGET_LANG
+        callback_page_type = CALLBACK_TYPE_TARGET_LANG_PAGE
+    else:
+        error(bot, update, "Unknown language type: " + str(type))
+        return
+
     global store_helper
     user_id = update.effective_user.id
     src = store_helper.get_src_lang(user_id)
     trg = store_helper.get_trg_lang(user_id)
-    text = "Your current source language: " + str(src) + ", target language: " + str(trg) + \
-           ".\nPlease chose new target language: "
+    src_str = LANGUAGES[src] if src in LANGUAGES else src if not None else "not set"
+    trg_str = LANGUAGES[trg] if trg in LANGUAGES else trg if not None else "not set"
+
+    text = "Your current source language: <b>" + str(src_str) + "</b>, target language: <b>" + str(trg_str) + \
+           "</b>.\nPlease chose new <b>" + lang_str + "</b> language: "
 
     button_list = list(map(lambda x: InlineKeyboardButton(text=x[1],
-                        callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_TARGET_LANG, x[0]))),
+                        callback_data=json.dumps(create_callback_word_dict(callback_select_type, x[0]))),
                     list(LANGUAGES.items())[page * LANG_BUTTONS_PER_REPLY : (page + 1) * LANG_BUTTONS_PER_REPLY]))
 
     pages_number = math.ceil(len(LANGUAGES) / LANG_BUTTONS_PER_REPLY)
     if pages_number > 1:
         if page > 0:
             button_list.append(InlineKeyboardButton(text="Previous page",
-                               callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_TARGET_LANG_PAGE, page-1))))
+                               callback_data=json.dumps(create_callback_word_dict(callback_page_type, page-1))))
         if page < pages_number - 1:
             button_list.append(InlineKeyboardButton(text="Next page",
-                               callback_data=json.dumps(create_callback_word_dict(CALLBACK_TYPE_TARGET_LANG_PAGE, page+1))))
+                               callback_data=json.dumps(create_callback_word_dict(callback_page_type, page+1))))
 
     reply_markup = InlineKeyboardMarkup(build_menu(button_list, n_cols=4))
-    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup)
+    bot.sendMessage(chat_id=get_chat_id(update), text=text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+
 
 def _set_source_lang(bot, update, lang):
     global store_helper
     user_id = update.effective_user.id
     res = store_helper.set_src_lang(user_id, lang)
     if res == store.Error.SUCCESS or res == store.Error.ALREADY_SAVED:
+        lang_str = LANGUAGES[lang]
         bot.sendMessage(chat_id=get_chat_id(update),
-                    text="Source language is set to: " + str(lang))
+                    text="Source language is set to: " + str(lang_str))
     else:
         error(bot, update, "Error changing source language: " + str(res))
 
@@ -265,8 +307,9 @@ def _set_target_lang(bot, update, lang):
     user_id = update.effective_user.id
     res = store_helper.set_trg_lang(user_id, lang)
     if res == store.Error.SUCCESS or res == store.Error.ALREADY_SAVED:
+        lang_str = LANGUAGES[lang]
         bot.sendMessage(chat_id=get_chat_id(update),
-                    text="Target language is set to: " + str(lang))
+                    text="Target language is set to: " + str(lang_str))
     else:
         error(bot, update, "Error changing target language: " + str(res))
 
