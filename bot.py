@@ -92,7 +92,23 @@ def translate(bot, update, word):
         'dest': trg
     }
     translation = calls.google_translate(params)
-    text = translation.text
+
+    translation_texts = []
+    if isinstance(translation.extra_data['possible-translations'], list) and len(translation.extra_data['possible-translations']) > 0:
+        possible_translations = translation.extra_data['possible-translations'][0]
+        if isinstance(possible_translations, list) and len(possible_translations) >= 2:
+            options = possible_translations[2]
+            if isinstance(options, list):
+                for option in options:
+                    if isinstance(option, list) and len(option) > 0:
+                        translation_texts.append(option[0])
+
+    if len(translation_texts) == 0:
+        translation_texts.append(translation.text)
+
+    text = ''
+    for item in translation_texts:
+        text += '– ' + str(item) + '\n'
 
     button_list = get_save_remove_button_list(user_id, word)
 
@@ -105,6 +121,11 @@ def specific_word(bot, update):
 
 def random_word(bot, update):
     """ Returns random word with description """
+    _word(bot, update, '')
+
+def _random_word_explained_with_google(bot, update):
+    """ Get a word from Word API and explanation from Google Translate.
+    Currently unused. """
     global store_helper
     user_id = update.effective_user.id
     src = store_helper.get_src_lang(user_id)
@@ -145,7 +166,7 @@ def start(bot, update):
         _show_language_selection(bot=bot, update=update, lang_type=TARGET_LANGUAGE, page=0)
 
 def _word(bot, update, word):
-    """ Gets word from Words API. Unused currently. """
+    """ Gets a word from Words API. """
     word_dict = calls.get_word(word)
     text = word_dict['word'] + ":\n"
     if 'pronunciation' in word_dict and 'all' in word_dict['pronunciation']:
@@ -179,18 +200,19 @@ def _explain_word_google(bot, update, word):
     translation = calls.google_translate(params)
     text = '<b>' + translation.text + ':</b>'
     if translation.pronunciation:
-        text += '[' + translation.pronunciation + ']'
-    for definition in translation.extra_data['definitions']:
-        if len(definition) >= 2:
-            part_of_speech = definition[0]
-            text += '\n <i>' + part_of_speech + ':</i>'
-            for details in definition[1]:
-                if len(details) > 0:
-                    explanation = details[0]
-                    text += '\n  – ' + explanation
-                    if len(details) >= 3:
-                        example = details[2]
-                        text += ' <i>"' + example + '"</i>'
+        text += '\n[' + translation.pronunciation + ']'
+    if isinstance(translation.extra_data['definitions'], list):
+        for definition in translation.extra_data['definitions']:
+            if len(definition) >= 2:
+                part_of_speech = definition[0]
+                text += '\n <i>' + part_of_speech + ':</i>'
+                for details in definition[1]:
+                    if len(details) > 0:
+                        explanation = details[0]
+                        text += '\n  – ' + explanation
+                        if len(details) >= 3:
+                            example = details[2]
+                            text += ' <i>"' + example + '"</i>'
 
     button_list = [
         InlineKeyboardButton(text="Translate",
