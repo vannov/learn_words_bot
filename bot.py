@@ -155,7 +155,7 @@ def start(bot, update):
         store_helper.add_user(user_id, src, trg)
         first_time = True
 
-    text = "Hello, " + first_name + "! This is a word-learning bot. Send any English word or press the button to get a random word." \
+    text = "Hello, " + first_name + "! This is a foreign word learning bot. Select your preferred source (foreign) and target (native) languages, send any word to get translation and/or explanation, store words that you would like to learn. You can also get a random word." \
             "\n\nList of commands:\n" + COMMANDS
     if first_time:
         text += "\n\nBut first please select your target language:"
@@ -419,8 +419,8 @@ def create_callback_word_dict(type, word):
 
 def get_permanent_reply_keyboard_markup():
     button_list = [
-        [ KeyboardButton(text="/random"), KeyboardButton(text="/saved") ],
-        [ KeyboardButton(text="/all"), KeyboardButton(text="/help")]
+        [ KeyboardButton(text="/random"), KeyboardButton(text="/saved") ]
+        #[ KeyboardButton(text="/all"), KeyboardButton(text="/help")]
     ]
     return ReplyKeyboardMarkup(keyboard=button_list)
 

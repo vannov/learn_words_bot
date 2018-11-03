@@ -1,3 +1,5 @@
+This is a foreign word learning bot. Select your preferred source (foreign) and target (native) languages, send any word to get translation and/or explanation, store words that you would like to learn. You can also get a random word.
+
 random - get random English word
 saved - get a random word from the list of saved words
 all - get all saved words
