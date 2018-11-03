@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" Telegram bot for translating and learning foreign words.
-Commands: TODO
-"""
+""" Telegram bot for translating and learning foreign words. """
 
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
 from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
@@ -20,12 +18,9 @@ import sys
 import json
 import math
 
-
-from bot_helpers import calls, store, local
+from helpers import calls, store, local
 
 LOCAL_ARGUMENT = 'local'
-
-WEBHOOK_URL = 'https://afternoon-waters-98053.herokuapp.com/'
 
 DEFAULT_SOURCE_LANGUAGE = 'auto'
 DEFAULT_TARGET_LANGUAGE = 'en'
@@ -482,10 +477,11 @@ def main():
     if local_run:
         updater.start_polling()
     else:
+        webhook_url = os.environ['WEBHOOK_URL']
         updater.start_webhook(listen="0.0.0.0",
                               port=port,
                               url_path=token)
-        updater.bot.set_webhook(WEBHOOK_URL + token)
+        updater.bot.set_webhook(webhook_url + token)
     updater.idle()
 
 
