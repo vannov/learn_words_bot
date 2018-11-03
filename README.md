@@ -2,4 +2,4 @@
 
 Desctiption: TODO
 
-# Example of a working bot: https://t.me/lwords_bot
+Example of a working bot: https://t.me/lwords_bot
