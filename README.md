@@ -8,7 +8,7 @@ Please note that currently the bot is hosted on a free Heroku server, which goes
 
 Start chatting with bot and it will send you the instructions and list of commands. You can always get these instructions again by sending **/help** command.
 
-##### Typical commands:
+#### Typical commands:
 
 Use commands **/source** and **/target** to choose your source (foreign) and target (native) languages:
  
@@ -39,13 +39,13 @@ Major dependencies:
 - Random word functionality is powered by Words API: https://www.wordsapi.com/
 - [Redis](https://redis.io/) is used as a database, implemented using Redis Python client: https://github.com/andymccurdy/redis-py
 
-Third party Python packages are managed using Pipenv: https://pipenv.readthedocs.io/en/latest/
-See [Pipfile](Pipfile) for all Python dependencies.
+Third party Python packages are managed using Pipenv: https://pipenv.readthedocs.io/en/latest/.
 
+See [Pipfile](Pipfile) for all Python dependencies.
 
 ### Developer notes:
 
-##### Running on server:
+#### Running on server:
 By default the bot runs using [webhooks](https://core.telegram.org/bots/api#setwebhook), which requires a server with a domain name.
 
 Before starting the bot script, set up the following environment variables on your server:
@@ -59,7 +59,7 @@ Run this command to start the bot on your server:
 python bot.py
 ```
 
-##### Running on local machine:
+#### Running on local machine:
 You can run the bot on a local machine using [polling](https://core.telegram.org/bots/api#getupdates).
 
 Before starting the bot script, modify [local.py](helpers/local.py) file to set up necessary environment variables. 
