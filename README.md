@@ -1,13 +1,14 @@
 ## Telegram bot for translating and learning foreign words
 
-Example of a working bot: https://t.me/lwords_bot
+Example of a working bot: https://t.me/lwords_bot.
+
 Please note that currently the bot is hosted on a free Heroku server, which goes to sleep after 30 minutes of inactivity. So it can take up to 10 seconds for the bot to wake up and reply.  
 
-###How to use the bot:
+### How to use the bot:
 
 Start chatting with bot and it will send you the instructions and list of commands. You can always get these instructions again by sending **/help** command.
 
-#####Typical commands:
+##### Typical commands:
 
 Use commands **/source** and **/target** to choose your source (foreign) and target (native) languages:
  
@@ -25,9 +26,11 @@ Use **/random** command to get random English word of phrase:
 
 ![Getting a random word](https://i.imgur.com/TdP1o18l.jpg)
 
-###Implementation details:
+### Implementation details:
 
-The bot is implemented in Python. The start point is function main() in [bot.py](bot.py).
+The bot is implemented in Python. See introduction to Telegram Bots here: https://core.telegram.org/bots
+
+The start point is function main() in [bot.py](bot.py).
 
 Major dependencies:
 
@@ -40,9 +43,9 @@ Third party Python packages are managed using Pipenv: https://pipenv.readthedocs
 See [Pipfile](Pipfile) for all Python dependencies.
 
 
-###Developer notes:
+### Developer notes:
 
-#####Running on server:
+##### Running on server:
 By default the bot runs using [webhooks](https://core.telegram.org/bots/api#setwebhook), which requires a server with a domain name.
 
 Before starting the bot script, set up the following environment variables on your server:
@@ -56,7 +59,7 @@ Run this command to start the bot on your server:
 python bot.py
 ```
 
-#####Running on local machine:
+##### Running on local machine:
 You can run the bot on a local machine using [polling](https://core.telegram.org/bots/api#getupdates).
 
 Before starting the bot script, modify [local.py](helpers/local.py) file to set up necessary environment variables. 
