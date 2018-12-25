@@ -1,8 +1,6 @@
 import os
 import requests
-# TODO: revert back to googletrans once this issue is resolved: https://github.com/ssut/py-googletrans/issues/88
 from googletrans import Translator
-#from py_translator import Translator
 
 WORDS_URL = 'https://wordsapiv1.p.mashape.com/words/'
 WORDS_RANDOM = '?hasDetails=typeOf&random=true'
