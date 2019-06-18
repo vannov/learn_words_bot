@@ -2,6 +2,7 @@ This is a foreign word learning bot. Select your preferred source (foreign) and 
 
 random - get random English word
 saved - get a random word from the list of saved words
+5saved - get 5 saved words
 all - get all saved words
 source - select source language
 target - select target language

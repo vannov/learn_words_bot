@@ -17,6 +17,7 @@ import ast
 import sys
 import json
 import math
+#import threading
 
 from helpers import calls, store, local
 
@@ -261,6 +262,12 @@ def get_saved(bot, update):
     else:
         error(bot, update, "No saved words found.")
 
+def get_multiple_saved(bot, update):
+    # TODO: read from storage, make user configurable
+    number_of_saved = 5
+    for i in range(number_of_saved):
+        get_saved(bot, update)
+
 def get_all_saved(bot, update):
     """ Gets all word from the user's list of words to learn. """
     global store_helper
@@ -433,6 +440,19 @@ def get_save_remove_button_list(user_id, word):
         button_list.append(save_button)
     return button_list
 
+# def start_reminders_thread(bot, update, interval):
+#     # Blocking function
+#     def send_reminders(bot, update, interval):
+#         ticker = threading.Event()
+#         while not ticker.wait(interval):
+#             for i in range(5):
+#                 get_saved(bot, update)
+#
+#     reminder_thread = threading.Thread(target=send_reminders, args=(bot, update, interval))
+#     reminder_thread.start()
+#     # TODO: add a way to stop thread
+
+
 def main():
     """Start the bot."""
 
@@ -456,6 +476,7 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("random", random_word))
     dp.add_handler(CommandHandler("saved", get_saved))
+    dp.add_handler(CommandHandler("5saved", get_multiple_saved))
     dp.add_handler(CommandHandler("all", get_all_saved))
     dp.add_handler(CommandHandler("source", source))
     dp.add_handler(CommandHandler("target", target))
