@@ -7,3 +7,5 @@ db.sqlite3
 .idea/
 test.py
 run_local.sh
+aws/package
+aws/deployment-package.zip
