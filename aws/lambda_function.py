@@ -1,5 +1,6 @@
 import os
 import json
+import requests
 from googletrans import Translator
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
